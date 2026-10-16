@@ -4,8 +4,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-public enum GameState { quieto, jugando, muerto, listo };
-
 public class GameCrontroller : MonoBehaviour {
 
     [Range (0f, 0.20f)]
