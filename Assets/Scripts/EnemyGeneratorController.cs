@@ -2,24 +2,24 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyGeneratorController : MonoBehaviour {
+public class EnemyGeneratorController: MonoBehaviour {
     public GameObject enemyPrefab;
     public float generationTime = 1.75f;
-    void createEnemy(){
+    
+    void CreateEnemy() {
         Instantiate(enemyPrefab, transform.position, Quaternion.identity);
     }
 
-    public void startGeneration(){
-        InvokeRepeating("createEnemy", 0f, generationTime);
+    public void StartGeneration() {
+        InvokeRepeating("CreateEnemy", 0f, generationTime);
     }
 
-    public void finish(bool clean = false)
-    {
-        CancelInvoke("createEnemy");
+    public void Finish(bool clean = false) {
+        CancelInvoke("CreateEnemy");
         
         if (clean) {
             object[] enemies = GameObject.FindGameObjectsWithTag("Enemigo");
-            foreach(GameObject enemy in enemies){
+            foreach(GameObject enemy in enemies) {
                 Destroy(enemy);
             }
 

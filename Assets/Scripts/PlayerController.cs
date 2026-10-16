@@ -15,11 +15,12 @@ public class playerController : MonoBehaviour {
     private AudioSource sonido;
     private float posY;
 
-	// Use this for initialization
-	void Start () {
-        animator = GetComponent<Animator>();
+	void Awake() {
+	    animator = GetComponent<Animator>();
         sonido = GetComponent<AudioSource>();
-
+	}
+	
+	void Start() {
         posY = transform.position.y;
 	}
 	
@@ -50,9 +51,9 @@ public class playerController : MonoBehaviour {
         polvo.Stop();
     }
 
-    private void OnTriggerEnter2D(Collider2D otro)
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        if (otro.gameObject.tag == "Enemigo")
+        if (other.gameObject.tag == "Enemigo")
         {
 			UpdateState("JugadorMuerto");
             game.GetComponent<GameCrontroller>().gamestate = GameState.muerto;
@@ -63,15 +64,17 @@ public class playerController : MonoBehaviour {
             sonido.Play();
 
             SinPolvo();
+            return;
         }
-        else if(otro.gameObject.tag == "Puntos"){
+        
+        if(otro.gameObject.tag == "Puntos") {
             game.SendMessage("IncPuntos");
             sonido.clip = puntoSonido;
             sonido.Play();
         }
     }
 
-    void EstaListo(){
+    void EstaListo() {
         game.GetComponent<GameCrontroller>().gamestate = GameState.listo;
     }
 }

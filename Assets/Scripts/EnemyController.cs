@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemyController: MonoBehaviour {
-
     [SerializeField] private float vel = 2f;
     private Rigidbody2D rg;
-
 
     void Awake() {
         rg = GetComponent<Rigidbody2D>();
