@@ -56,7 +56,7 @@ public class PlayerController : MonoBehaviour {
         if (other.gameObject.tag == "Enemigo")
         {
 			UpdateState("JugadorMuerto");
-            game.GetComponent<GameCrontroller>().gamestate = GameState.muerto;
+            game.GetComponent<GameCrontroller>().state = GameState.muerto;
             enemigo.SendMessage("Finish", true);
             game.SendMessage("ReiniciarTimeScale", 0.7f);
             game.GetComponent<AudioSource>().Stop();
