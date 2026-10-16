@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 public class GameCrontroller: MonoBehaviour {
     [Range (0f, 0.20f)]
     public float parallaxSpeed = 0.03f;
-    public RawImage Background, plataform;
+    public RawImage background, plataform;
     public GameObject standByUI;
     public GameObject scoreUI;
     public GameObject player;
@@ -17,7 +17,7 @@ public class GameCrontroller: MonoBehaviour {
 
     private AudioSource music;
 
-    public float scaleTine = 6f;
+    public float scaleTime = 6f;
     public float timeInc = .25f;
 
     public GameState state = GameState.quieto;
@@ -43,11 +43,11 @@ public class GameCrontroller: MonoBehaviour {
                 standByUI.SetActive(false);
                 player.SendMessage("UpdateState", "JugadorCorriendo");
                 player.SendMessage("ConPolvo");
-                enemy.SendMessage("ComenzarGeneracionEnemigo");
-                InvokeRepeating("GameTimeScale", ScaleTime, ScaleTime);
+                enemy.SendMessage("StartGeneration");
+                InvokeRepeating("GameTimeScale", scaleTime, scaleTime);
                 break;
             case GameState.jugando:
-                Parallax()
+                Parallax();
                 break;
             case GameState.listo:
                 if (isJumpping) {

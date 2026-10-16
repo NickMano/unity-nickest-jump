@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class playerController : MonoBehaviour {
+public class PlayerController : MonoBehaviour {
 
     public Animator animator;
     public GameObject game;
@@ -26,7 +26,7 @@ public class playerController : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-        bool enJuego = game.GetComponent<GameCrontroller>().gamestate == GameState.jugando;
+        bool enJuego = game.GetComponent<GameCrontroller>().state == GameState.jugando;
         bool accion = Input.GetKeyDown("up") || Input.GetKeyDown("space") || Input.GetMouseButton(0);
         bool caminando = transform.position.y == posY;
         if (enJuego && accion && caminando)
@@ -57,7 +57,7 @@ public class playerController : MonoBehaviour {
         {
 			UpdateState("JugadorMuerto");
             game.GetComponent<GameCrontroller>().gamestate = GameState.muerto;
-            enemigo.SendMessage("TerminarGeneracionEnemigo", true);
+            enemigo.SendMessage("Finish", true);
             game.SendMessage("ReiniciarTimeScale", 0.7f);
             game.GetComponent<AudioSource>().Stop();
             sonido.clip = jugadorMuriendo;
@@ -67,7 +67,7 @@ public class playerController : MonoBehaviour {
             return;
         }
         
-        if(otro.gameObject.tag == "Puntos") {
+        if(other.gameObject.tag == "Puntos") {
             game.SendMessage("IncPuntos");
             sonido.clip = puntoSonido;
             sonido.Play();
@@ -75,6 +75,6 @@ public class playerController : MonoBehaviour {
     }
 
     void EstaListo() {
-        game.GetComponent<GameCrontroller>().gamestate = GameState.listo;
+        game.GetComponent<GameCrontroller>().state = GameState.listo;
     }
 }
