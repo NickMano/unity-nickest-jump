@@ -9,10 +9,10 @@ public class PlayerController : MonoBehaviour
     private static readonly int JugadorSaltandoHash = Animator.StringToHash("JugadorSaltando");
     private static readonly int JugadorCorriendoHash = Animator.StringToHash("JugadorCorriendo");
 
-    [SerializeField] private GameCrontroller game;
-    [SerializeField] private AudioClip jugadorSaltando;
-    [SerializeField] private AudioClip jugadorMuriendo;
-    [SerializeField] private AudioClip puntoSonido;
+    [SerializeField] private GameController game;
+    [SerializeField] private AudioClip jumpingAudioClip;
+    [SerializeField] private AudioClip dieAudioClip;
+    [SerializeField] private AudioClip pointAudioClip;
     [SerializeField] private ParticleSystem dust;
 
     private AudioSource sound;
@@ -22,6 +22,7 @@ public class PlayerController : MonoBehaviour
 
     public event Action Died;
     public event Action DeathAnimationFinished;
+    public event Action PointCollected;
 
     void Awake()
     {
@@ -34,12 +35,14 @@ public class PlayerController : MonoBehaviour
     public void OnFinishedJumping()
     {
         isJumping = false;
+        if (isDead) return;
         dust.Play();
     }
 
     public void StartRunning()
     {
         isDead = false;
+        isJumping = false;
         animator.Play(JugadorCorriendoHash);
         dust.Play();
     }
@@ -55,13 +58,13 @@ public class PlayerController : MonoBehaviour
         Jump();
     }
 
-    private bool CanJump() => game.IsPlaying() && !isJumping;
+    private bool CanJump() => game.IsPlaying() && !isJumping && !isDead;
 
     private void Jump()
     {
         isJumping = true;
         animator.Play(JugadorSaltandoHash);
-        sound.clip = jugadorSaltando;
+        sound.clip = jumpingAudioClip;
         sound.Play();
     }
 
@@ -72,7 +75,7 @@ public class PlayerController : MonoBehaviour
 
         dust.Stop();
 
-        sound.clip = jugadorMuriendo;
+        sound.clip = dieAudioClip;
         sound.Play();
 
         animator.Play(JugadorMuertoHash);
@@ -90,8 +93,8 @@ public class PlayerController : MonoBehaviour
                 break;
 
             case "Puntos":
-                game.IncPuntos();
-                sound.clip = puntoSonido;
+                PointCollected?.Invoke();
+                sound.clip = pointAudioClip;
                 sound.Play();
                 break;
 

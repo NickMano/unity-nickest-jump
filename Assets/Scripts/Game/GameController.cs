@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(AudioSource))]
@@ -7,24 +6,16 @@ public class GameController : MonoBehaviour
 {
     // MARK: Private properties
     private AudioSource music;
-    private int score = 0;
     private GameState currentState = GameState.standBy;
 
     [SerializeField] private PlayerController player;
     [SerializeField] private EnemyGeneratorController enemyGenerator;
     [SerializeField] private InputHandler inputHandler;
+    [SerializeField] private ParallaxController parallax;
+    [SerializeField] private GameHUD hud;
+    [SerializeField] private ScoreController scoreController;
 
     // MARK: Public properties
-    [Range(0f, 0.20f)]
-    public float parallaxSpeed = 0.03f;
-
-    public RawImage background, plataform;
-    public GameObject standByUI;
-    public GameObject scoreUI;
-
-    public Text textScore;
-    public Text record;
-
     public float scaleTime = 6f;
     public float timeInc = .25f;
 
@@ -36,7 +27,7 @@ public class GameController : MonoBehaviour
     // MARK: Lifecycle methods
     void Start()
     {
-        record.text = "MEJOR: " + GetMaxPuntos().ToString();
+        hud.ShowStandby();
     }
 
     void OnEnable()
@@ -44,7 +35,7 @@ public class GameController : MonoBehaviour
         inputHandler.JumpPressed += HandleJumpPressed;
         player.Died += EndGame;
         player.DeathAnimationFinished += SetReady;
-        player.PointCollected += IncPuntos;
+        player.PointCollected += AddPoints;
     }
 
     void OnDisable()
@@ -52,42 +43,20 @@ public class GameController : MonoBehaviour
         inputHandler.JumpPressed -= HandleJumpPressed;
         player.Died -= EndGame;
         player.DeathAnimationFinished -= SetReady;
-        player.PointCollected -= IncPuntos;
+        player.PointCollected -= AddPoints;
 
-    }
-
-    void Update()
-    {
-        if (!IsPlaying()) return;
-        Parallax();
     }
 
     // MARK: Public methods
-    public void IncPuntos()
+    public void AddPoints()
     {
         if (!IsPlaying()) return;
-
-        textScore.text = (++score).ToString();
-        if (score >= GetMaxPuntos())
-        {
-            record.text = "MEJOR: " + score.ToString();
-            SetMaxPuntos(score);
-        }
-    }
-
-    public int GetMaxPuntos()
-    {
-        return PlayerPrefs.GetInt("Max Puntaje");
-    }
-
-    public void SetMaxPuntos(int currentScore)
-    {
-        PlayerPrefs.SetInt("Max Puntaje", currentScore);
+        scoreController.AddPoints(1);
     }
 
     public bool IsPlaying() => currentState == GameState.jugando;
 
-    public void ReiniciarTimeScale(float time = 1f)
+    public void RestartTimeScale(float time = 1f)
     {
         CancelInvoke(nameof(GameTimeScale));
         Time.timeScale = time;
@@ -95,10 +64,11 @@ public class GameController : MonoBehaviour
 
     private void StartGame()
     {
-        standByUI.SetActive(false);
-        scoreUI.SetActive(true);
+        hud.ShowPlaying();
+        parallax.StartScrolling();
         music.Play();
         currentState = GameState.jugando;
+
         player.StartRunning();
         enemyGenerator.StartGeneration();
         InvokeRepeating(nameof(GameTimeScale), scaleTime, scaleTime);
@@ -106,7 +76,7 @@ public class GameController : MonoBehaviour
 
     private void RestartGame()
     {
-        ReiniciarTimeScale();
+        RestartTimeScale();
         SceneManager.LoadScene("Main");
     }
 
@@ -115,9 +85,10 @@ public class GameController : MonoBehaviour
         if (!IsPlaying()) return;
 
         currentState = GameState.muerto;
-        ReiniciarTimeScale(0.7f);
+        RestartTimeScale(0.7f);
         music.Stop();
         enemyGenerator.Finish();
+        parallax.StopScrolling();
     }
 
     private void SetReady()
@@ -127,13 +98,6 @@ public class GameController : MonoBehaviour
     }
 
     // MARK: Internal methods
-    void Parallax()
-    {
-        float finalSpeed = parallaxSpeed * Time.deltaTime;
-        background.uvRect = new Rect(background.uvRect.x + finalSpeed, 0f, 1f, 1f);
-        plataform.uvRect = new Rect(plataform.uvRect.x + finalSpeed * 4, 0f, 1f, 1f);
-    }
-
     void GameTimeScale()
     {
         Time.timeScale += timeInc;
