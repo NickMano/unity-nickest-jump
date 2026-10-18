@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(AudioSource))]
-public class GameCrontroller : MonoBehaviour
+public class GameController : MonoBehaviour
 {
     // MARK: Private properties
     private AudioSource music;
@@ -28,10 +28,14 @@ public class GameCrontroller : MonoBehaviour
     public float scaleTime = 6f;
     public float timeInc = .25f;
 
+    void Awake()
+    {
+        music = GetComponent<AudioSource>();
+    }
+
     // MARK: Lifecycle methods
     void Start()
     {
-        music = GetComponent<AudioSource>();
         record.text = "MEJOR: " + GetMaxPuntos().ToString();
     }
 
@@ -40,6 +44,7 @@ public class GameCrontroller : MonoBehaviour
         inputHandler.JumpPressed += HandleJumpPressed;
         player.Died += EndGame;
         player.DeathAnimationFinished += SetReady;
+        player.PointCollected += IncPuntos;
     }
 
     void OnDisable()
@@ -47,6 +52,8 @@ public class GameCrontroller : MonoBehaviour
         inputHandler.JumpPressed -= HandleJumpPressed;
         player.Died -= EndGame;
         player.DeathAnimationFinished -= SetReady;
+        player.PointCollected -= IncPuntos;
+
     }
 
     void Update()
@@ -105,6 +112,8 @@ public class GameCrontroller : MonoBehaviour
 
     private void EndGame()
     {
+        if (!IsPlaying()) return;
+
         currentState = GameState.muerto;
         ReiniciarTimeScale(0.7f);
         music.Stop();
