@@ -1,5 +1,5 @@
 ﻿public enum GameState { 
-    quieto, 
+    standBy, 
     jugando, 
     muerto, 
     listo 

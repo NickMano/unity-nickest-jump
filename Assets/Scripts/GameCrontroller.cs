@@ -1,101 +1,152 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-public class GameCrontroller: MonoBehaviour {
-    [Range (0f, 0.20f)]
+[RequireComponent(typeof(AudioSource))]
+public class GameCrontroller : MonoBehaviour
+{
+    // MARK: Private properties
+    private AudioSource music;
+    private int score = 0;
+    private GameState currentState = GameState.standBy;
+
+    [SerializeField] private PlayerController player;
+    [SerializeField] private EnemyGeneratorController enemyGenerator;
+    [SerializeField] private InputHandler inputHandler;
+
+    // MARK: Public properties
+    [Range(0f, 0.20f)]
     public float parallaxSpeed = 0.03f;
+
     public RawImage background, plataform;
     public GameObject standByUI;
     public GameObject scoreUI;
-    public GameObject player;
-    public GameObject enemy;
+
     public Text textScore;
     public Text record;
-
-    private AudioSource music;
 
     public float scaleTime = 6f;
     public float timeInc = .25f;
 
-    public GameState state = GameState.quieto;
-    private int score = 0;
-
-	// Use this for initialization
-	void Start() {
+    // MARK: Lifecycle methods
+    void Start()
+    {
         music = GetComponent<AudioSource>();
         record.text = "MEJOR: " + GetMaxPuntos().ToString();
-	}
-	
-	// Update is called once per frame
-	void Update() {
-        bool isJumpping = IsJumpping();
-        
-        switch (state) {
-            case GameState.quieto:
-                if (!isJumpping) { break; }
-                standByUI.SetActive(false);
-                scoreUI.SetActive(true);
-                music.Play();
-                state = GameState.jugando;
-                standByUI.SetActive(false);
-                player.SendMessage("UpdateState", "JugadorCorriendo");
-                player.SendMessage("ConPolvo");
-                enemy.SendMessage("StartGeneration");
-                InvokeRepeating("GameTimeScale", scaleTime, scaleTime);
-                break;
-            case GameState.jugando:
-                Parallax();
-                break;
-            case GameState.listo:
-                if (isJumpping) {
-                    ReiniciarJuego();
-                }
-                break;
-        }
-	}
-
-    void Parallax() {
-        float finalSpeed = parallaxSpeed * Time.deltaTime;
-        background.uvRect = new Rect(background.uvRect.x + finalSpeed, 0f, 1f, 1f);
-        plataform.uvRect = new Rect(plataform.uvRect.x + finalSpeed * 4, 0f, 1f, 1f);
     }
 
-    void GameTimeScale() {
-        Time.timeScale += timeInc;
+    void OnEnable()
+    {
+        inputHandler.JumpPressed += HandleJumpPressed;
+        player.Died += EndGame;
+        player.DeathAnimationFinished += SetReady;
     }
 
-    void ReiniciarTimeScale(float time = 1f) {
-        CancelInvoke("GameTimeScale");
-        Time.timeScale = time;
+    void OnDisable()
+    {
+        inputHandler.JumpPressed -= HandleJumpPressed;
+        player.Died -= EndGame;
+        player.DeathAnimationFinished -= SetReady;
     }
 
-    public void ReiniciarJuego() {
-        ReiniciarTimeScale();
-        SceneManager.LoadScene("Juego");
+    void Update()
+    {
+        if (!IsPlaying()) return;
+        Parallax();
     }
 
-    public void IncPuntos() {
+    // MARK: Public methods
+    public void IncPuntos()
+    {
+        if (!IsPlaying()) return;
+
         textScore.text = (++score).ToString();
-        if (score >= GetMaxPuntos()) {
+        if (score >= GetMaxPuntos())
+        {
             record.text = "MEJOR: " + score.ToString();
             SetMaxPuntos(score);
         }
     }
 
-    public int GetMaxPuntos() {
+    public int GetMaxPuntos()
+    {
         return PlayerPrefs.GetInt("Max Puntaje");
     }
 
-    public void SetMaxPuntos(int currentScore) {
+    public void SetMaxPuntos(int currentScore)
+    {
         PlayerPrefs.SetInt("Max Puntaje", currentScore);
     }
-    
-    bool IsJumpping() {
-        return Input.GetKeyDown("up") || 
-            Input.GetKeyDown("space") || 
-            Input.GetMouseButton(0);
+
+    public bool IsPlaying() => currentState == GameState.jugando;
+
+    public void ReiniciarTimeScale(float time = 1f)
+    {
+        CancelInvoke(nameof(GameTimeScale));
+        Time.timeScale = time;
+    }
+
+    private void StartGame()
+    {
+        standByUI.SetActive(false);
+        scoreUI.SetActive(true);
+        music.Play();
+        currentState = GameState.jugando;
+        player.StartRunning();
+        enemyGenerator.StartGeneration();
+        InvokeRepeating(nameof(GameTimeScale), scaleTime, scaleTime);
+    }
+
+    private void RestartGame()
+    {
+        ReiniciarTimeScale();
+        SceneManager.LoadScene("Main");
+    }
+
+    private void EndGame()
+    {
+        currentState = GameState.muerto;
+        ReiniciarTimeScale(0.7f);
+        music.Stop();
+        enemyGenerator.Finish();
+    }
+
+    private void SetReady()
+    {
+        if (currentState != GameState.muerto) return;
+        currentState = GameState.listo;
+    }
+
+    // MARK: Internal methods
+    void Parallax()
+    {
+        float finalSpeed = parallaxSpeed * Time.deltaTime;
+        background.uvRect = new Rect(background.uvRect.x + finalSpeed, 0f, 1f, 1f);
+        plataform.uvRect = new Rect(plataform.uvRect.x + finalSpeed * 4, 0f, 1f, 1f);
+    }
+
+    void GameTimeScale()
+    {
+        Time.timeScale += timeInc;
+    }
+
+    private void HandleJumpPressed()
+    {
+        switch (currentState)
+        {
+            case GameState.standBy:
+                StartGame();
+                break;
+
+            case GameState.jugando:
+                player.TryJump();
+                break;
+
+            case GameState.listo:
+                RestartGame();
+                break;
+
+            default: break;
+        }
     }
 }

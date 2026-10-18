@@ -1,80 +1,102 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System;
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour {
+[RequireComponent(typeof(AudioSource))]
+[RequireComponent(typeof(Animator))]
+public class PlayerController : MonoBehaviour
+{
+    private static readonly int JugadorMuertoHash = Animator.StringToHash("JugadorMuerto");
+    private static readonly int JugadorSaltandoHash = Animator.StringToHash("JugadorSaltando");
+    private static readonly int JugadorCorriendoHash = Animator.StringToHash("JugadorCorriendo");
 
-    public Animator animator;
-    public GameObject game;
-    public GameObject enemigo;
-    public AudioClip jugadorSaltando;
-    public AudioClip jugadorMuriendo;
-    public AudioClip puntoSonido;
-    public ParticleSystem polvo;
+    [SerializeField] private GameCrontroller game;
+    [SerializeField] private AudioClip jugadorSaltando;
+    [SerializeField] private AudioClip jugadorMuriendo;
+    [SerializeField] private AudioClip puntoSonido;
+    [SerializeField] private ParticleSystem dust;
 
-    private AudioSource sonido;
-    private float posY;
+    private AudioSource sound;
+    private Animator animator;
+    private bool isJumping = false;
+    private bool isDead = false;
 
-	void Awake() {
-	    animator = GetComponent<Animator>();
-        sonido = GetComponent<AudioSource>();
-	}
-	
-	void Start() {
-        posY = transform.position.y;
-	}
-	
-	// Update is called once per frame
-	void Update () {
-        bool enJuego = game.GetComponent<GameCrontroller>().state == GameState.jugando;
-        bool accion = Input.GetKeyDown("up") || Input.GetKeyDown("space") || Input.GetMouseButton(0);
-        bool caminando = transform.position.y == posY;
-        if (enJuego && accion && caminando)
-        {
-            UpdateState("JugadorSaltando");
-            sonido.clip = jugadorSaltando;
-            sonido.Play();
-        }
-	}
+    public event Action Died;
+    public event Action DeathAnimationFinished;
 
-    public void UpdateState(string state = null){
-        if(state != null){
-            animator.Play(state);
-        }
+    void Awake()
+    {
+        animator = GetComponent<Animator>();
+        sound = GetComponent<AudioSource>();
     }
 
-    void ConPolvo(){
-        polvo.Play();
+    public void OnStartJumping() => dust.Stop();
+
+    public void OnFinishedJumping()
+    {
+        isJumping = false;
+        dust.Play();
     }
 
-    void SinPolvo(){
-        polvo.Stop();
+    public void StartRunning()
+    {
+        isDead = false;
+        animator.Play(JugadorCorriendoHash);
+        dust.Play();
+    }
+
+    public void OnDeathAnimationFinished()
+    {
+        DeathAnimationFinished?.Invoke();
+    }
+
+    public void TryJump()
+    {
+        if (!CanJump()) return;
+        Jump();
+    }
+
+    private bool CanJump() => game.IsPlaying() && !isJumping;
+
+    private void Jump()
+    {
+        isJumping = true;
+        animator.Play(JugadorSaltandoHash);
+        sound.clip = jugadorSaltando;
+        sound.Play();
+    }
+
+    private void Die()
+    {
+        if (isDead) return;
+        isDead = true;
+
+        dust.Stop();
+
+        sound.clip = jugadorMuriendo;
+        sound.Play();
+
+        animator.Play(JugadorMuertoHash);
+        Died?.Invoke();
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.gameObject.tag == "Enemigo")
+        if (!game.IsPlaying()) return;
+
+        switch (other.gameObject.tag)
         {
-			UpdateState("JugadorMuerto");
-            game.GetComponent<GameCrontroller>().state = GameState.muerto;
-            enemigo.SendMessage("Finish", true);
-            game.SendMessage("ReiniciarTimeScale", 0.7f);
-            game.GetComponent<AudioSource>().Stop();
-            sonido.clip = jugadorMuriendo;
-            sonido.Play();
+            case "Enemigo":
+                Die();
+                break;
 
-            SinPolvo();
-            return;
-        }
-        
-        if(other.gameObject.tag == "Puntos") {
-            game.SendMessage("IncPuntos");
-            sonido.clip = puntoSonido;
-            sonido.Play();
-        }
-    }
+            case "Puntos":
+                game.IncPuntos();
+                sound.clip = puntoSonido;
+                sound.Play();
+                break;
 
-    void EstaListo() {
-        game.GetComponent<GameCrontroller>().state = GameState.listo;
+            default:
+                break;
+        }
     }
 }
